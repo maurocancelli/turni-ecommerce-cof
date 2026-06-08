@@ -240,11 +240,10 @@ with tab_turni:
                         riposi_fissi = [dip.get("Riposo 1"), dip.get("Riposo 2")]
                         riposi_fissi = [r for r in riposi_fissi if r != "Nessuno" and pd.notnull(r)]
                         
-                        giorno_base = GIORNI_BASE[OFFSETS.index(offset) - 1] # Traduce 'Lun' in 'Lunedì'
+                        giorno_base = GIORNI_BASE[OFFSETS.index(offset) - 1] 
                         
                         if valore_dom_p == "RIPOSO" and giorno_base in riposi_fissi:
                             outro_riposo = riposi_fissi[1] if len(riposi_fissi) > 1 and giorno_base == riposi_fissi[0] else riposi_fissi[0]
-                            # Usa 'Lun' al posto di 'Lunedì' per pescare il target copertura
                             chiave_altro = [k for k, g in zip(GIORNI_8_KEYS[1:7], GIORNI_BASE[:-1]) if g == outro_riposo]
                             chiave_corrente = key
                             if chiave_altro and target_copertura.get(chiave_corrente, 0) <= target_copertura.get(chiave_altro[0], 0):
@@ -285,50 +284,4 @@ with tab_turni:
                     
         return df
 
-    tabs_week = st.tabs([f"Week {week_partenza + i}" for i in range(6)])
-    
-    # Memoria a cascata per l'alternanza delle Domeniche
-    mem_domeniche_dinamica = {row["Nome"]: False for index, row in st.session_state.df_anagrafica.iterrows() if row.get("Nome")}
-
-    for i, t_week in enumerate(tabs_week):
-        week_corrente = week_partenza + i
-        lunedi_settimana = data_inizio + datetime.timedelta(weeks=i)
-        
-        FILE_BLOCCO = f"Turni_Bloccati_W{week_corrente}_{anno_partenza}.csv"
-        config_colonne_turni = {}
-        rinomina_esportazione = {}
-        
-        for key, offset in zip(GIORNI_8_KEYS, OFFSETS):
-            data_giorno = lunedi_settimana + datetime.timedelta(days=offset)
-            label_dinamico = f"{APPROV_GIORNI[key]} {data_giorno.day}"
-            config_colonne_turni[key] = st.column_config.SelectboxColumn(label_dinamico, options=OPZIONI_TURNO)
-            rinomina_esportazione[key] = label_dinamico
-
-        with t_week:
-            if st.session_state.df_anagrafica.empty:
-                st.warning("Inserisci prima i dipendenti nell'Anagrafica.")
-            else:
-                if os.path.exists(FILE_BLOCCO):
-                    df_calcolato = pd.read_csv(FILE_BLOCCO)
-                    st.info("🔒 Settimana Definitiva. Modifica e clicca Salva per aggiornare il blocco.")
-                else:
-                    df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
-                
-                df_modificato = st.data_editor(
-                    df_calcolato, 
-                    column_config=config_colonne_turni, 
-                    use_container_width=True, 
-                    hide_index=True, 
-                    key=f"editor_w{week_corrente}"
-                )
-                
-                # --- AGGIORNAMENTO MEMORIA PER LA PROSSIMA SETTIMANA ---
-                # Legge la Dom_S (Domenica Successiva) di QUESTA settimana per passarla come Dom_P della prossima
-                for i_row, row in df_modificato.iterrows():
-                    nome_dip = row.get("Dipendente")
-                    if nome_dip:
-                        mem_domeniche_dinamica[nome_dip] = (row.get("Dom_S") not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"])
-                
-                col_save, col_down = st.columns(2)
-                with col_save:
-                    if st.button
+    tabs_week =
