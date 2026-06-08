@@ -40,7 +40,6 @@ if 'df_anagrafica' not in st.session_state:
             
         st.session_state.df_anagrafica = df_caricato
     else:
-        # Generazione sicura per evitare righe troppo lunghe troncate nel copia-incolla
         nomi_base = [
             ("MENDOZA MARVIN", "FT", 1), ("MENDOZA MANUEL", "FT", 2),
             ("ALVES BRAGA ELAINE", "FT", 3), ("BULOSAN CRISTOPHER", "FT", 4),
@@ -319,7 +318,13 @@ with tab_turni:
             else:
                 if os.path.exists(FILE_BLOCCO):
                     df_calcolato = pd.read_csv(FILE_BLOCCO)
-                    st.info("🔒 Settimana Definitiva. Modifica e clicca Salva per aggiornare il blocco.")
+                    
+                    # --- CONTROLLO ANTI-CRASH STRUTTURA VECCHIA ---
+                    if "Dom_P" not in df_calcolato.columns:
+                        st.warning(f"⚠️ Rilevata struttura obsoleta salvata per la Week {week_corrente}. La settimana è stata rigenerata con il nuovo layout.")
+                        df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
+                    else:
+                        st.info("🔒 Settimana Definitiva. Modifica e clicca Salva per aggiornare il blocco.")
                 else:
                     df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
                 
@@ -389,4 +394,3 @@ with tab_turni:
                     
                 st.write("**Stima Volumi Giornalieri:**")
                 st.dataframe(pd.DataFrame(report).set_index("Giorno").T)
-                
