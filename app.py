@@ -9,10 +9,29 @@ st.title("Pianificazione Mensile Reparto E-commerce")
 # --- 1. INIZIALIZZAZIONE MEMORIA ---
 if 'df_anagrafica' not in st.session_state:
     dati_base = [
-        {"Nome": "Nikita D.", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": True},
-        {"Nome": "Mia", "Contratto": "PT", "Squadra": 2, "Riposo 1": "Martedì", "Riposo 2": "Mercoledì", "Dom Scorsa": False},
-        {"Nome": "Operatore 3", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "Operatore 4", "Contratto": "PT", "Squadra": 4, "Riposo 1": "Lunedì", "Riposo 2": "Giovedì", "Dom Scorsa": True},
+        {"Nome": "MENDOZA MARVIN", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "MENDOZA MANUEL", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "ALVES BRAGA ELAINE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "BULOSAN CRISTOPHER", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "CAVALLARI CATERINA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "GAVAZZENI MICHELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "CUARESMA FRANCESCO", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "PERALTA BARBARA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "RICCARDI SIMONA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "MABANTA MARIA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "PASCUA ARVIN", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "TOCCHETTI CAMILLA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "SPEERING DAPHNI", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "TANADA EUGENE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "CIPRIANO RUSSEL", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "FELIX CARBUNGCAL", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "BONO DANIELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "TAN JONIMAE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "PETILUNA ROSARIO", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "MAGTIBAY LEA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "MAGTIBAY BABYJANE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        {"Nome": "DONGHI NIKITA", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
     ]
     st.session_state.df_anagrafica = pd.DataFrame(dati_base)
 
@@ -32,7 +51,7 @@ with tab_anagrafica:
     with st.container(border=True):
         col1, col2 = st.columns(2)
         with col1:
-            nuovo_nome = st.text_input("Nome e Iniziale (es. Mario R.)")
+            nuovo_nome = st.text_input("Nome e Cognome")
             nuovo_contratto = st.selectbox("Tipo Contratto", ["FT", "PT"])
             nuova_squadra = st.selectbox("Squadra di appartenenza", [1, 2, 3, 4])
         with col2:
@@ -45,7 +64,7 @@ with tab_anagrafica:
                 st.error("Inserisci un nome valido!")
             else:
                 nuova_riga = {
-                    "Nome": nuovo_nome,
+                    "Nome": nuovo_nome.upper(),
                     "Contratto": nuovo_contratto,
                     "Squadra": nuova_squadra,
                     "Riposo 1": nuovo_r1 if nuovo_contratto == "PT" else None,
@@ -53,7 +72,7 @@ with tab_anagrafica:
                     "Dom Scorsa": nuova_dom
                 }
                 st.session_state.df_anagrafica = pd.concat([st.session_state.df_anagrafica, pd.DataFrame([nuova_riga])], ignore_index=True)
-                st.success(f"✅ {nuovo_nome} aggiunto correttamente!")
+                st.success(f"✅ {nuovo_nome.upper()} aggiunto correttamente!")
                 st.rerun()
 
     # --- MODULO ELIMINAZIONE ---
@@ -68,8 +87,10 @@ with tab_anagrafica:
                 st.success(f"❌ {nome_da_eliminare} rimosso dalla lista.")
                 st.rerun()
 
-    # --- TABELLA RIEPILOGO ---
-    st.subheader("👥 Lista Attuale Personale")
+    # --- TABELLA RIEPILOGO E SALVATAGGIO ---
+    st.subheader("👥 Lista Attuale Personale (Modificabile)")
+    st.write("Puoi toccare le celle della tabella per fare correzioni veloci. **Ricorda di premere Salva Modifiche!**")
+    
     config_anagrafica = {
         "Contratto": st.column_config.SelectboxColumn("Contratto", options=["FT", "PT"], required=True),
         "Squadra": st.column_config.NumberColumn("Squadra", min_value=1, max_value=4, step=1, required=True),
@@ -78,13 +99,17 @@ with tab_anagrafica:
         "Dom Scorsa": st.column_config.CheckboxColumn("Lavorato Domenica Scorsa?")
     }
     
-    st.session_state.df_anagrafica = st.data_editor(
+    df_editato = st.data_editor(
         st.session_state.df_anagrafica,
         column_config=config_anagrafica,
-        num_rows="fixed", # Disattiva il "+" scomodo per il tablet
+        num_rows="fixed",
         use_container_width=True,
         hide_index=True
     )
+
+    if st.button("💾 Salva Modifiche Tabella", type="primary", use_container_width=True):
+        st.session_state.df_anagrafica = df_editato
+        st.success("✅ Dati aggiornati con successo! Ora puoi calcolare i turni nella scheda accanto.")
 
 
 # ==========================================
@@ -122,7 +147,7 @@ with tab_turni:
         dati_dipendenti = st.session_state.df_anagrafica.to_dict('records')
         
         for dip in dati_dipendenti:
-            if not dip["Nome"]: continue 
+            if not dip.get("Nome") or str(dip.get("Nome")).strip() == "": continue 
             
             turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
             riga = {"Dipendente": dip["Nome"], "Contratto": dip["Contratto"], "Squadra": dip["Squadra"]}
@@ -167,7 +192,8 @@ with tab_turni:
     
     memoria_dom = {}
     for index, row in st.session_state.df_anagrafica.iterrows():
-        if row["Nome"]: memoria_dom[row["Nome"]] = row["Dom Scorsa"]
+        if row.get("Nome") and str(row.get("Nome")).strip() != "":
+            memoria_dom[row["Nome"]] = row["Dom Scorsa"]
 
     config_colonne_turni = {g: st.column_config.SelectboxColumn(g, options=OPZIONI_TURNO) for g in GIORNI}
 
