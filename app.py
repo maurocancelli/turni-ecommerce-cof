@@ -131,16 +131,25 @@ with tab_anagrafica:
 # ==========================================
 with tab_turni:
     def determina_turno_base(squadra, numero_settimana):
-        """Calcola il turno incrociando l'alternanza a specchio delle squadre"""
+        """Calcola il turno incrociando l'alternanza e dividendo i due tipi di pomeriggio"""
         ciclo = numero_settimana % 4
-        if squadra in [1, 2]:
-            if ciclo == 1 or ciclo == 3: return "06:00-13:00"
-            elif ciclo == 2: return "12:30-19:30"
-            else: return "13:00-20:00"
-        else:
-            if ciclo == 1: return "12:30-19:30"
-            elif ciclo == 3: return "13:00-20:00"
-            else: return "06:00-13:00"
+        
+        if ciclo == 1:
+            if squadra in [1, 2]: return "06:00-13:00"
+            elif squadra == 3: return "12:30-19:30"
+            elif squadra == 4: return "13:00-20:00"
+        elif ciclo == 2:
+            if squadra == 1: return "12:30-19:30"
+            elif squadra == 2: return "13:00-20:00"
+            elif squadra in [3, 4]: return "06:00-13:00"
+        elif ciclo == 3:
+            if squadra in [1, 2]: return "06:00-13:00"
+            elif squadra == 3: return "13:00-20:00"
+            elif squadra == 4: return "12:30-19:30"
+        else: # ciclo == 0
+            if squadra == 1: return "13:00-20:00"
+            elif squadra == 2: return "12:30-19:30"
+            elif squadra in [3, 4]: return "06:00-13:00"
 
     def colora_celle(valore):
         if valore == "MALATTIA": return "background-color: #ffcccc; color: #cc0000; font-weight: bold;"
@@ -199,26 +208,21 @@ with tab_turni:
             
         df = pd.DataFrame(tabellone)
         
-        # --- NUOVA LOGICA DINAMICA RIPOSI FT ---
         if not df.empty:
             ft_indices = df[df["Contratto"] == "FT"].index.tolist()
-            
             for index in ft_indices:
                 miglior_giorno = None
                 max_surplus = -9999
                 
-                # Cerca il giorno con più "sovrabbondanza" di personale rispetto al target
                 for giorno in GIORNI[1:]:
                     lavoratori_attivi = (df[giorno] != "RIPOSO").sum()
                     target_persone = totale_dipendenti * target_copertura[giorno]
-                    
                     surplus = lavoratori_attivi - target_persone
                     
                     if surplus > max_surplus:
                         max_surplus = surplus
                         miglior_giorno = giorno
                         
-                # Assegna il riposo nel giorno migliore e aggiorna la tabella per il prossimo FT
                 if miglior_giorno:
                     df.at[index, miglior_giorno] = "RIPOSO"
                     
