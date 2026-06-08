@@ -90,6 +90,35 @@ tab_anagrafica, tab_turni = st.tabs(["📋 1. Gestione Anagrafica", "📅 2. Gen
 # SCHEDA 1: GESTIONE ANAGRAFICA
 # ==========================================
 with tab_anagrafica:
+    st.subheader("👥 Lista Attuale Personale e Assenze Programmate")
+    if "Malattia Fino Al" in st.session_state.df_anagrafica.columns:
+        st.session_state.df_anagrafica["Malattia Fino Al"] = pd.to_datetime(st.session_state.df_anagrafica["Malattia Fino Al"]).dt.date
+    
+    config_anagrafica = {
+        "Contratto": st.column_config.SelectboxColumn("Contratto", options=["FT", "PT"], required=True),
+        "Squadra": st.column_config.NumberColumn("Squadra", min_value=1, max_value=4, step=1, required=True),
+        "Riposo 1": st.column_config.SelectboxColumn("Riposo 1 (PT)", options=["Nessuno"] + GIORNI_BASE[:-1]),
+        "Riposo 2": st.column_config.SelectboxColumn("Riposo 2 (PT)", options=["Nessuno"] + GIORNI_BASE[:-1]),
+        "Malattia Fino Al": st.column_config.DateColumn("Malattia Fino Al", format="DD/MM/YYYY"),
+        "Ferie W1": st.column_config.NumberColumn("Ferie W1 (N. Set)"),
+        "Ferie W2": st.column_config.NumberColumn("Ferie W2 (N. Set)"),
+        "Ferie W3": st.column_config.NumberColumn("Ferie W3 (N. Set)")
+    }
+    
+    df_editato = st.data_editor(
+        st.session_state.df_anagrafica,
+        column_config=config_anagrafica,
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True
+    )
+
+    if st.button("💾 Salva Modifiche Anagrafica", type="primary", use_container_width=True):
+        salva_dati_su_file(df_editato)
+        st.success("✅ Dati anagrafici e assenze aggiornati correttamente!")
+
+    st.divider()
+
     col_add, col_del = st.columns(2)
     with col_add:
         st.subheader("➕ Aggiungi un nuovo dipendente")
@@ -130,35 +159,6 @@ with tab_anagrafica:
                     salva_dati_su_file(nuovo_df)
                     st.success(f"❌ {nome_da_eliminare} rimosso dalla lista.")
                     st.rerun()
-
-    st.divider()
-
-    st.subheader("👥 Lista Attuale Personale e Assenze Programmate")
-    if "Malattia Fino Al" in st.session_state.df_anagrafica.columns:
-        st.session_state.df_anagrafica["Malattia Fino Al"] = pd.to_datetime(st.session_state.df_anagrafica["Malattia Fino Al"]).dt.date
-    
-    config_anagrafica = {
-        "Contratto": st.column_config.SelectboxColumn("Contratto", options=["FT", "PT"], required=True),
-        "Squadra": st.column_config.NumberColumn("Squadra", min_value=1, max_value=4, step=1, required=True),
-        "Riposo 1": st.column_config.SelectboxColumn("Riposo 1 (PT)", options=["Nessuno"] + GIORNI_BASE[:-1]),
-        "Riposo 2": st.column_config.SelectboxColumn("Riposo 2 (PT)", options=["Nessuno"] + GIORNI_BASE[:-1]),
-        "Malattia Fino Al": st.column_config.DateColumn("Malattia Fino Al", format="DD/MM/YYYY"),
-        "Ferie W1": st.column_config.NumberColumn("Ferie W1 (N. Set)"),
-        "Ferie W2": st.column_config.NumberColumn("Ferie W2 (N. Set)"),
-        "Ferie W3": st.column_config.NumberColumn("Ferie W3 (N. Set)")
-    }
-    
-    df_editato = st.data_editor(
-        st.session_state.df_anagrafica,
-        column_config=config_anagrafica,
-        num_rows="dynamic",
-        use_container_width=True,
-        hide_index=True
-    )
-
-    if st.button("💾 Salva Modifiche Anagrafica", type="primary", use_container_width=True):
-        salva_dati_su_file(df_editato)
-        st.success("✅ Dati anagrafici e assenze aggiornati correttamente!")
 
 # ==========================================
 # SCHEDA 2: GENERAZIONE TURNI E PRODUTTIVITÀ
@@ -268,7 +268,7 @@ with tab_turni:
                 df.at[index, "Dom_S"] = "FERIE"
         
         lavoratori_attuali = (~df["Dom_S"].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
-        da_attivare = 10 - lavoratori_attuali # Adesso ne cerca 10 e non 9
+        da_attivare = 10 - lavoratori_attuali
         
         if da_attivare > 0:
             # Preferenza 1: Chi è a RIPOSO su Dom_S e NON ha lavorato la domenica prima (Alternanza standard)
