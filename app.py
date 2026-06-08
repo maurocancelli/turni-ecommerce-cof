@@ -50,8 +50,15 @@ if 'df_anagrafica' not in st.session_state:
         df_iniziale = pd.DataFrame(dati_base)
         salva_dati_su_file(df_iniziale)
 
-GIORNI = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"]
+# Ordinamento logico standard (Lunedì -> Domenica)
+GIORNI = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
 OPZIONI_TURNO = ["06:00-13:00", "12:30-19:30", "13:00-20:00", "RIPOSO", "MALATTIA", "FERIE", "PERMESSO"]
+
+# Abbreviazioni per le intestazioni
+APPROV_GIORNI = {
+    "Lunedì": "Lun", "Martedì": "Mar", "Mercoledì": "Mer", 
+    "Giovedì": "Gio", "Venerdì": "Ven", "Sabato": "Sab", "Domenica": "Dom"
+}
 
 # --- CREAZIONE SCHEDE ---
 tab_anagrafica, tab_turni = st.tabs(["📋 1. Gestione Anagrafica", "📅 2. Generazione Turni"])
@@ -69,8 +76,8 @@ with tab_anagrafica:
             nuovo_contratto = st.selectbox("Tipo Contratto", ["FT", "PT"])
             nuova_squadra = st.selectbox("Squadra di appartenenza", [1, 2, 3, 4])
         with col2:
-            nuovo_r1 = st.selectbox("Riposo Fisso 1 (Solo per Part-Time)", [None] + GIORNI[1:])
-            nuovo_r2 = st.selectbox("Riposo Fisso 2 (Solo per Part-Time)", [None] + GIORNI[1:])
+            nuovo_r1 = st.selectbox("Riposo Fisso 1 (Solo per Part-Time)", [None] + GIORNI[:-1])
+            nuovo_r2 = st.selectbox("Riposo Fisso 2 (Solo per Part-Time)", [None] + GIORNI[:-1])
             nuova_dom = st.checkbox("Ha lavorato l'ultima Domenica?", value=False)
             
         if st.button("Aggiungi all'Anagrafica", use_container_width=True):
@@ -103,13 +110,12 @@ with tab_anagrafica:
                 st.rerun()
 
     st.subheader("👥 Lista Attuale Personale (Modificabile)")
-    st.write("Puoi toccare le celle della tabella per fare correzioni veloci. **Ricorda di premere Salva Modifiche!**")
     
     config_anagrafica = {
         "Contratto": st.column_config.SelectboxColumn("Contratto", options=["FT", "PT"], required=True),
         "Squadra": st.column_config.NumberColumn("Squadra", min_value=1, max_value=4, step=1, required=True),
-        "Riposo 1": st.column_config.SelectboxColumn("Riposo 1 (PT)", options=GIORNI[1:]),
-        "Riposo 2": st.column_config.SelectboxColumn("Riposo 2 (PT)", options=GIORNI[1:]),
+        "Riposo 1": st.column_config.SelectboxColumn("Riposo 1 (PT)", options=GIORNI[:-1]),
+        "Riposo 2": st.column_config.SelectboxColumn("Riposo 2 (PT)", options=GIORNI[:-1]),
         "Dom Scorsa": st.column_config.CheckboxColumn("Lavorato Domenica Scorsa?")
     }
     
@@ -123,7 +129,7 @@ with tab_anagrafica:
 
     if st.button("💾 Salva Modifiche Tabella", type="primary", use_container_width=True):
         salva_dati_su_file(df_editato)
-        st.success("✅ Dati salvati in modo permanente! Ora resisteranno ai refresh della pagina.")
+        st.success("✅ Dati salvati in modo permanente!")
 
 
 # ==========================================
@@ -131,9 +137,7 @@ with tab_anagrafica:
 # ==========================================
 with tab_turni:
     def determina_turno_base(squadra, numero_settimana):
-        """Calcola il turno incrociando l'alternanza e dividendo i due tipi di pomeriggio"""
         ciclo = numero_settimana % 4
-        
         if ciclo == 1:
             if squadra in [1, 2]: return "06:00-13:00"
             elif squadra == 3: return "12:30-19:30"
@@ -146,7 +150,7 @@ with tab_turni:
             if squadra in [1, 2]: return "06:00-13:00"
             elif squadra == 3: return "13:00-20:00"
             elif squadra == 4: return "12:30-19:30"
-        else: # ciclo == 0
+        else:
             if squadra == 1: return "13:00-20:00"
             elif squadra == 2: return "12:30-19:30"
             elif squadra in [3, 4]: return "06:00-13:00"
@@ -167,7 +171,7 @@ with tab_turni:
 
     st.sidebar.subheader("Forza Lavoro Richiesta (%)")
     target_copertura = {}
-    default_pct = [45, 90, 75, 75, 75, 90, 90]
+    default_pct = [90, 75, 75, 75, 90, 90, 45] # Mappati su Lun->Dom
     for g, default in zip(GIORNI, default_pct):
         target_copertura[g] = st.sidebar.slider(g, 0, 100, default) / 100
 
@@ -182,28 +186,28 @@ with tab_turni:
             turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
             riga = {"Dipendente": dip["Nome"], "Contratto": dip["Contratto"], "Squadra": dip["Squadra"]}
             
+            # Pre-calcolo Domenica per vincolare i Part-Time
             ha_lavorato_scorsa = bool(mem_domeniche.get(dip["Nome"], False))
-            if ha_lavorato_scorsa:
-                riga["Domenica"] = "RIPOSO"
-            else:
-                riga["Domenica"] = "06:00-13:00"
+            dom_turno = "RIPOSO" if ha_lavorato_scorsa else "06:00-13:00"
                 
-            for giorno in GIORNI[1:]:
+            # Giorni feriali
+            for giorno in GIORNI[:-1]:
                 if dip["Contratto"] == "PT":
                     riposi_fissi = [dip.get("Riposo 1"), dip.get("Riposo 2")]
-                    if riga["Domenica"] == "RIPOSO" and giorno in riposi_fissi and giorno is not None:
-                        altro_riposo = riposi_fissi[1] if giorno == riposi_fissi[0] else riposi_fissi[0]
-                        if target_copertura.get(giorno, 0) <= target_copertura.get(altro_riposo, 0):
+                    if dom_turno == "RIPOSO" and giorno in riposi_fissi and giorno is not None:
+                        outro_riposo = riposi_fissi[1] if giorno == riposi_fissi[0] else riposi_fissi[0]
+                        if target_copertura.get(giorno, 0) <= target_copertura.get(outro_riposo, 0):
                             riga[giorno] = "RIPOSO"
                         else:
                             riga[giorno] = turno_base
-                    elif riga["Domenica"] != "RIPOSO" and giorno in riposi_fissi and giorno is not None:
+                    elif dom_turno != "RIPOSO" and giorno in riposi_fissi and giorno is not None:
                         riga[giorno] = "RIPOSO"
                     else:
                         riga[giorno] = turno_base
                 else:
                     riga[giorno] = turno_base 
-                    
+            
+            riga["Domenica"] = dom_turno
             tabellone.append(riga)
             
         df = pd.DataFrame(tabellone)
@@ -214,7 +218,7 @@ with tab_turni:
                 miglior_giorno = None
                 max_surplus = -9999
                 
-                for giorno in GIORNI[1:]:
+                for giorno in GIORNI[:-1]:
                     lavoratori_attivi = (df[giorno] != "RIPOSO").sum()
                     target_persone = totale_dipendenti * target_copertura[giorno]
                     surplus = lavoratori_attivi - target_persone
@@ -235,10 +239,19 @@ with tab_turni:
         if row.get("Nome") and str(row.get("Nome")).strip() != "":
             memoria_dom[row["Nome"]] = row["Dom Scorsa"]
 
-    config_colonne_turni = {g: st.column_config.SelectboxColumn(g, options=OPZIONI_TURNO) for g in GIORNI}
-
     for i, t_week in enumerate(tabs_week):
         week_corrente = week_partenza + i
+        lunedi_settimana = data_inizio + datetime.timedelta(weeks=i)
+        
+        # Generiamo le intestazioni dinamiche con i numeri esatti di calendario
+        config_colonne_turni = {}
+        rinomina_esportazione = {}
+        for offset, g_nome in enumerate(GIORNI):
+            data_giorno = lunedi_settimana + datetime.timedelta(days=offset)
+            label_dinamico = f"{APPROV_GIORNI[g_nome]} {data_giorno.day}"
+            config_colonne_turni[g_nome] = st.column_config.SelectboxColumn(label_dinamico, options=OPZIONI_TURNO)
+            rinomina_esportazione[g_nome] = label_dinamico
+
         with t_week:
             if st.session_state.df_anagrafica.empty:
                 st.warning("Inserisci prima i dipendenti nell'Anagrafica.")
@@ -255,29 +268,33 @@ with tab_turni:
                     key=f"editor_w{week_corrente}"
                 )
                 
-                # --- BOTTONE DI ESPORTAZIONE IN CSV/EXCEL ---
-                csv = df_modificato.to_csv(index=False, sep=";").encode('utf-8-sig')
+                # Esportazione con date reali inserite nell'intestazione Excel
+                df_esportazione = df_modificato.copy()
+                df_esportazione.rename(columns=rinomina_esportazione, inplace=True)
+                csv = df_esportazione.to_csv(index=False, sep=";").encode('utf-8-sig')
+                
                 st.download_button(
-                    label=f"📥 Scarica Turni Week {week_corrente} in Excel/CSV",
+                    label=f"📥 Scarica Turni Week {week_corrente} (Excel/CSV con Date reali)",
                     data=csv,
                     file_name=f"Turni_Week_{week_corrente}.csv",
                     mime="text/csv",
                     use_container_width=True
                 )
-                st.write("") # Spazio extra per pulizia grafica
+                st.write("")
 
                 st.write("**Vista Visiva Assenze e Copertura:**")
                 st.dataframe(df_modificato.style.map(colora_celle), use_container_width=True)
                 
+                # Report Volumi con date di calendario
                 report = []
-                for g in GIORNI:
-                    is_mattina = df_modificato[g] == "06:00-13:00"
-                    is_pome = df_modificato[g].isin(["12:30-19:30", "13:00-20:00"])
-                    op_m = df_modificato[is_mattina][g].count() if not df_modificato.empty else 0
-                    op_p = df_modificato[is_pome][g].count() if not df_modificato.empty else 0
+                for g_nome in GIORNI:
+                    is_mattina = df_modificato[g_nome] == "06:00-13:00"
+                    is_pome = df_modificato[g_nome].isin(["12:30-19:30", "13:00-20:00"])
+                    op_m = df_modificato[is_mattina][g_nome].count() if not df_modificato.empty else 0
+                    op_p = df_modificato[is_pome][g_nome].count() if not df_modificato.empty else 0
                     
                     report.append({
-                        "Giorno": g, 
+                        "Giorno": rinomina_esportazione[g_nome], 
                         "Op. Mattina": op_m, 
                         "Op. Pomeriggio": op_p, 
                         "Pezzi Previsti": (op_m + op_p) * 7 * pieces_ora
