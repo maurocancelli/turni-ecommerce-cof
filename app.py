@@ -1,39 +1,54 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import os
 
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(page_title="Pianificazione Turni - COF", layout="wide")
 st.title("Pianificazione Mensile Reparto E-commerce")
 
-# --- 1. INIZIALIZZAZIONE MEMORIA ---
+# --- NOME DEL FILE DI SALVATAGGIO PERMANENTE ---
+FILE_ANAGRAFICA = "anagrafica_salvata.csv"
+
+def salva_dati_su_file(df):
+    """Salva il dataframe in un file CSV fisico per resistere ai refresh della pagina"""
+    st.session_state.df_anagrafica = df
+    df.to_csv(FILE_ANAGRAFICA, index=False)
+
+# --- 1. INIZIALIZZAZIONE MEMORIA PERMANENTE ---
 if 'df_anagrafica' not in st.session_state:
-    dati_base = [
-        {"Nome": "MENDOZA MARVIN", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "MENDOZA MANUEL", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "ALVES BRAGA ELAINE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "BULOSAN CRISTOPHER", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "CAVALLARI CATERINA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "GAVAZZENI MICHELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "CUARESMA FRANCESCO", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "PERALTA BARBARA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "RICCARDI SIMONA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "MABANTA MARIA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "PASCUA ARVIN", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "TOCCHETTI CAMILLA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "SPEERING DAPHNI", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "TANADA EUGENE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "CIPRIANO RUSSEL", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "FELIX CARBUNGCAL", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "BONO DANIELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "TAN JONIMAE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "PETILUNA ROSARIO", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "MAGTIBAY LEA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "MAGTIBAY BABYJANE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-        {"Nome": "DONGHI NIKITA", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-    ]
-    st.session_state.df_anagrafica = pd.DataFrame(dati_base)
+    if os.path.exists(FILE_ANAGRAFICA):
+        df_caricato = pd.read_csv(FILE_ANAGRAFICA)
+        df_caricato = df_caricato.where(pd.notnull(df_caricato), None)
+        st.session_state.df_anagrafica = df_caricato
+    else:
+        dati_base = [
+            {"Nome": "MENDOZA MARVIN", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "MENDOZA MANUEL", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "ALVES BRAGA ELAINE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "BULOSAN CRISTOPHER", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "CAVALLARI CATERINA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "GAVAZZENI MICHELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "CUARESMA FRANCESCO", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "PERALTA BARBARA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "RICCARDI SIMONA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "MABANTA MARIA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "PASCUA ARVIN", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "TOCCHETTI CAMILLA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "SPEERING DAPHNI", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "TANADA EUGENE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "CIPRIANO RUSSEL", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "FELIX CARBUNGCAL", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa False"},
+            {"Nome": "BONO DANIELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "TAN JONIMAE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "PETILUNA ROSARIO", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "MAGTIBAY LEA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "MAGTIBAY BABYJANE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+            {"Nome": "DONGHI NIKITA", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
+        ]
+        df_iniziale = pd.DataFrame(dati_base)
+        salva_dati_su_file(df_iniziale)
 
 GIORNI = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"]
 OPZIONI_TURNO = ["06:00-13:00", "12:30-19:30", "13:00-20:00", "RIPOSO", "MALATTIA", "FERIE", "PERMESSO"]
@@ -42,11 +57,10 @@ OPZIONI_TURNO = ["06:00-13:00", "12:30-19:30", "13:00-20:00", "RIPOSO", "MALATTI
 tab_anagrafica, tab_turni = st.tabs(["📋 1. Gestione Anagrafica", "📅 2. Generazione Turni"])
 
 # ==========================================
-# SCHEDA 1: GESTIONE ANAGRAFICA (TOUCH FRIENDLY)
+# SCHEDA 1: GESTIONE ANAGRAFICA
 # ==========================================
 with tab_anagrafica:
     
-    # --- MODULO AGGIUNTA ---
     st.subheader("➕ Aggiungi un nuovo dipendente")
     with st.container(border=True):
         col1, col2 = st.columns(2)
@@ -71,11 +85,11 @@ with tab_anagrafica:
                     "Riposo 2": nuovo_r2 if nuovo_contratto == "PT" else None,
                     "Dom Scorsa": nuova_dom
                 }
-                st.session_state.df_anagrafica = pd.concat([st.session_state.df_anagrafica, pd.DataFrame([nuova_riga])], ignore_index=True)
+                nuovo_df = pd.concat([st.session_state.df_anagrafica, pd.DataFrame([nuova_riga])], ignore_index=True)
+                salva_dati_su_file(nuovo_df)
                 st.success(f"✅ {nuovo_nome.upper()} aggiunto correttamente!")
                 st.rerun()
 
-    # --- MODULO ELIMINAZIONE ---
     st.subheader("🗑️ Rimuovi un dipendente")
     with st.container(border=True):
         lista_nomi = st.session_state.df_anagrafica["Nome"].tolist()
@@ -83,11 +97,11 @@ with tab_anagrafica:
         
         if st.button("Elimina", type="primary"):
             if nome_da_eliminare != "Nessuno...":
-                st.session_state.df_anagrafica = st.session_state.df_anagrafica[st.session_state.df_anagrafica["Nome"] != nome_da_eliminare]
+                nuovo_df = st.session_state.df_anagrafica[st.session_state.df_anagrafica["Nome"] != nome_da_eliminare]
+                salva_dati_su_file(nuovo_df)
                 st.success(f"❌ {nome_da_eliminare} rimosso dalla lista.")
                 st.rerun()
 
-    # --- TABELLA RIEPILOGO E SALVATAGGIO ---
     st.subheader("👥 Lista Attuale Personale (Modificabile)")
     st.write("Puoi toccare le celle della tabella per fare correzioni veloci. **Ricorda di premere Salva Modifiche!**")
     
@@ -108,8 +122,8 @@ with tab_anagrafica:
     )
 
     if st.button("💾 Salva Modifiche Tabella", type="primary", use_container_width=True):
-        st.session_state.df_anagrafica = df_editato
-        st.success("✅ Dati aggiornati con successo! Ora puoi calcolare i turni nella scheda accanto.")
+        salva_dati_su_file(df_editato)
+        st.success("✅ Dati salvati in modo permanente! Ora resisteranno ai refresh della pagina.")
 
 
 # ==========================================
@@ -117,10 +131,16 @@ with tab_anagrafica:
 # ==========================================
 with tab_turni:
     def determina_turno_base(squadra, numero_settimana):
+        """Calcola il turno incrociando l'alternanza a specchio delle squadre"""
         ciclo = numero_settimana % 4
-        if ciclo == 1 or ciclo == 3: return "06:00-13:00"
-        elif ciclo == 2: return "12:30-19:30"
-        else: return "13:00-20:00"
+        if squadra in [1, 2]:
+            if ciclo == 1 or ciclo == 3: return "06:00-13:00"
+            elif ciclo == 2: return "12:30-19:30"
+            else: return "13:00-20:00"
+        else: # Squadre 3 e 4 (Inversione speculare)
+            if ciclo == 1: return "12:30-19:30"
+            elif ciclo == 3: return "13:00-20:00"
+            else: return "06:00-13:00"
 
     def colora_celle(valore):
         if valore == "MALATTIA": return "background-color: #ffcccc; color: #cc0000; font-weight: bold;"
@@ -134,7 +154,7 @@ with tab_turni:
     st.sidebar.header("Parametri Operativi")
     data_inizio = st.sidebar.date_input("Lunedì di inizio pianificazione", datetime.date.today())
     week_partenza = data_inizio.isocalendar()[1]
-    pezzi_ora = st.sidebar.number_input("Pezzi/Ora (Default):", value=100)
+    pieces_ora = st.sidebar.number_input("Pezzi/Ora (Default):", value=100)
 
     st.sidebar.subheader("Forza Lavoro Richiesta (%)")
     target_copertura = {}
@@ -152,7 +172,7 @@ with tab_turni:
             turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
             riga = {"Dipendente": dip["Nome"], "Contratto": dip["Contratto"], "Squadra": dip["Squadra"]}
             
-            ha_lavorato_scorsa = mem_domeniche.get(dip["Nome"], False)
+            ha_lavorato_scorsa = bool(mem_domeniche.get(dip["Nome"], False))
             if ha_lavorato_scorsa:
                 riga["Domenica"] = "RIPOSO"
             else:
@@ -160,14 +180,14 @@ with tab_turni:
                 
             for giorno in GIORNI[1:]:
                 if dip["Contratto"] == "PT":
-                    riposi_fissi = [dip["Riposo 1"], dip["Riposo 2"]]
-                    if riga["Domenica"] == "RIPOSO" and giorno in riposi_fissi:
+                    riposi_fissi = [dip.get("Riposo 1"), dip.get("Riposo 2")]
+                    if riga["Domenica"] == "RIPOSO" and giorno in riposi_fissi and giorno is not None:
                         altro_riposo = riposi_fissi[1] if giorno == riposi_fissi[0] else riposi_fissi[0]
                         if target_copertura.get(giorno, 0) <= target_copertura.get(altro_riposo, 0):
                             riga[giorno] = "RIPOSO"
                         else:
                             riga[giorno] = turno_base
-                    elif riga["Domenica"] != "RIPOSO" and giorno in riposi_fissi:
+                    elif riga["Domenica"] != "RIPOSO" and giorno in riposi_fissi and giorno is not None:
                         riga[giorno] = "RIPOSO"
                     else:
                         riga[giorno] = turno_base
@@ -229,7 +249,7 @@ with tab_turni:
                         "Giorno": g, 
                         "Op. Mattina": op_m, 
                         "Op. Pomeriggio": op_p, 
-                        "Pezzi Previsti": (op_m + op_p) * 7 * pezzi_ora
+                        "Pezzi Previsti": (op_m + op_p) * 7 * pieces_ora
                     })
                     
                 st.write("**Stima Volumi Giornalieri (Escluse Assenze):**")
