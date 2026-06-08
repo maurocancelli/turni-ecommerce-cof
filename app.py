@@ -14,42 +14,58 @@ def salva_dati_su_file(df):
     st.session_state.df_anagrafica = df
     df.to_csv(FILE_ANAGRAFICA, index=False)
 
+def pulisci_riposi(val):
+    """Garantisce che i riposi vuoti siano gestiti come 'Nessuno' per non bloccare l'editor"""
+    if pd.isna(val) or val is None or str(val).strip() == "": return "Nessuno"
+    return val
+
 # --- INIZIALIZZAZIONE MEMORIA PERMANENTE ---
 if 'df_anagrafica' not in st.session_state:
     if os.path.exists(FILE_ANAGRAFICA):
         df_caricato = pd.read_csv(FILE_ANAGRAFICA)
         df_caricato = df_caricato.where(pd.notnull(df_caricato), None)
-        # Assicuriamo che le nuove colonne esistano nei vecchi salvataggi
+        
+        # Pulizia vecchie colonne se esistono ancora
+        if "Dom Scorsa" in df_caricato.columns:
+            df_caricato = df_caricato.drop(columns=["Dom Scorsa"])
+            
         nuove_colonne = ["Malattia Fino Al", "Ferie W1", "Ferie W2", "Ferie W3"]
         for col in nuove_colonne:
             if col not in df_caricato.columns:
                 df_caricato[col] = None
+                
+        # Normalizzazione dei Riposi per la Data Table
+        if "Riposo 1" in df_caricato.columns:
+            df_caricato["Riposo 1"] = df_caricato["Riposo 1"].apply(pulisci_riposi)
+        if "Riposo 2" in df_caricato.columns:
+            df_caricato["Riposo 2"] = df_caricato["Riposo 2"].apply(pulisci_riposi)
+            
         st.session_state.df_anagrafica = df_caricato
     else:
         dati_base = [
-            {"Nome": "MENDOZA MARVIN", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "MENDOZA MANUEL", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "ALVES BRAGA ELAINE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "BULOSAN CRISTOPHER", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "CAVALLARI CATERINA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "GAVAZZENI MICHELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "CUARESMA FRANCESCO", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "PERALTA BARBARA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "RICCARDI SIMONA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "MABANTA MARIA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "PASCUA ARVIN", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "TOCCHETTI CAMILLA", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "SPEERING DAPHNI", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "TANADA EUGENE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "CIPRIANO RUSSEL", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "FELIX CARBUNGCAL", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "BONO DANIELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "TAN JONIMAE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "PETILUNA ROSARIO", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "MAGTIBAY LEA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "MAGTIBAY BABYJANE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
-            {"Nome": "DONGHI NIKITA", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False, "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "MENDOZA MARVIN", "Contratto": "FT", "Squadra": 1, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "MENDOZA MANUEL", "Contratto": "FT", "Squadra": 2, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "ALVES BRAGA ELAINE", "Contratto": "FT", "Squadra": 3, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "BULOSAN CRISTOPHER", "Contratto": "FT", "Squadra": 4, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "CAVALLARI CATERINA", "Contratto": "FT", "Squadra": 1, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "GAVAZZENI MICHELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "CUARESMA FRANCESCO", "Contratto": "FT", "Squadra": 3, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "PERALTA BARBARA", "Contratto": "FT", "Squadra": 4, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "RICCARDI SIMONA", "Contratto": "FT", "Squadra": 1, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "MABANTA MARIA", "Contratto": "FT", "Squadra": 2, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "PASCUA ARVIN", "Contratto": "FT", "Squadra": 3, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "TOCCHETTI CAMILLA", "Contratto": "FT", "Squadra": 4, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "SPEERING DAPHNI", "Contratto": "FT", "Squadra": 1, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "TANADA EUGENE", "Contratto": "FT", "Squadra": 2, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "CIPRIANO RUSSEL", "Contratto": "FT", "Squadra": 3, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "FELIX CARBUNGCAL", "Contratto": "FT", "Squadra": 4, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "BONO DANIELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "TAN JONIMAE", "Contratto": "FT", "Squadra": 3, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "PETILUNA ROSARIO", "Contratto": "FT", "Squadra": 4, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "MAGTIBAY LEA", "Contratto": "FT", "Squadra": 1, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "MAGTIBAY BABYJANE", "Contratto": "FT", "Squadra": 2, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
+            {"Nome": "DONGHI NIKITA", "Contratto": "FT", "Squadra": 3, "Riposo 1": "Nessuno", "Riposo 2": "Nessuno", "Malattia Fino Al": None, "Ferie W1": None, "Ferie W2": None, "Ferie W3": None},
         ]
         df_iniziale = pd.DataFrame(dati_base)
         salva_dati_su_file(df_iniziale)
@@ -68,19 +84,62 @@ tab_anagrafica, tab_turni = st.tabs(["📋 1. Gestione Anagrafica", "📅 2. Gen
 # SCHEDA 1: GESTIONE ANAGRAFICA
 # ==========================================
 with tab_anagrafica:
-    st.subheader("👥 Lista Attuale Personale e Assenze Programmate")
-    st.write("Modifica le date di malattia o i numeri delle settimane di ferie. Clicca su **Salva Modifiche** per applicare.")
     
-    # Conversione corretta della colonna date per Streamlit
+    col_add, col_del = st.columns(2)
+    
+    with col_add:
+        st.subheader("➕ Aggiungi un nuovo dipendente")
+        with st.container(border=True):
+            nuovo_nome = st.text_input("Nome e Cognome")
+            nuovo_contratto = st.selectbox("Tipo Contratto", ["FT", "PT"])
+            nuova_squadra = st.selectbox("Squadra di appartenenza", [1, 2, 3, 4])
+            nuovo_r1 = st.selectbox("Riposo Fisso 1 (Solo PT)", ["Nessuno"] + GIORNI[:-1])
+            nuovo_r2 = st.selectbox("Riposo Fisso 2 (Solo PT)", ["Nessuno"] + GIORNI[:-1])
+                
+            if st.button("Aggiungi all'Anagrafica", use_container_width=True):
+                if nuovo_nome.strip() == "":
+                    st.error("Inserisci un nome valido!")
+                else:
+                    nuova_riga = {
+                        "Nome": nuovo_nome.upper(),
+                        "Contratto": nuovo_contratto,
+                        "Squadra": nuova_squadra,
+                        "Riposo 1": nuovo_r1 if nuovo_contratto == "PT" else "Nessuno",
+                        "Riposo 2": nuovo_r2 if nuovo_contratto == "PT" else "Nessuno",
+                        "Malattia Fino Al": None,
+                        "Ferie W1": None, "Ferie W2": None, "Ferie W3": None
+                    }
+                    nuovo_df = pd.concat([st.session_state.df_anagrafica, pd.DataFrame([nuova_riga])], ignore_index=True)
+                    salva_dati_su_file(nuovo_df)
+                    st.success(f"✅ {nuovo_nome.upper()} aggiunto correttamente!")
+                    st.rerun()
+
+    with col_del:
+        st.subheader("🗑️ Rimuovi un dipendente")
+        with st.container(border=True):
+            lista_nomi = st.session_state.df_anagrafica["Nome"].tolist()
+            nome_da_eliminare = st.selectbox("Scegli chi eliminare:", ["Nessuno..."] + lista_nomi)
+            
+            if st.button("Elimina Dipendente", type="primary", use_container_width=True):
+                if nome_da_eliminare != "Nessuno...":
+                    nuovo_df = st.session_state.df_anagrafica[st.session_state.df_anagrafica["Nome"] != nome_da_eliminare]
+                    salva_dati_su_file(nuovo_df)
+                    st.success(f"❌ {nome_da_eliminare} rimosso dalla lista.")
+                    st.rerun()
+
+    st.divider()
+
+    st.subheader("👥 Lista Attuale Personale e Assenze Programmate")
+    st.write("Modifica le date di malattia, ferie o giorni di riposo. Clicca su **Salva Modifiche** per applicare.")
+    
     if "Malattia Fino Al" in st.session_state.df_anagrafica.columns:
         st.session_state.df_anagrafica["Malattia Fino Al"] = pd.to_datetime(st.session_state.df_anagrafica["Malattia Fino Al"]).dt.date
     
     config_anagrafica = {
         "Contratto": st.column_config.SelectboxColumn("Contratto", options=["FT", "PT"], required=True),
         "Squadra": st.column_config.NumberColumn("Squadra", min_value=1, max_value=4, step=1, required=True),
-        "Riposo 1": st.column_config.SelectboxColumn("Riposo 1 (PT)", options=GIORNI[:-1]),
-        "Riposo 2": st.column_config.SelectboxColumn("Riposo 2 (PT)", options=GIORNI[:-1]),
-        "Dom Scorsa": st.column_config.CheckboxColumn("Lavorato Dom. Scorsa?"),
+        "Riposo 1": st.column_config.SelectboxColumn("Riposo 1 (PT)", options=["Nessuno"] + GIORNI[:-1]),
+        "Riposo 2": st.column_config.SelectboxColumn("Riposo 2 (PT)", options=["Nessuno"] + GIORNI[:-1]),
         "Malattia Fino Al": st.column_config.DateColumn("Malattia Fino Al", format="DD/MM/YYYY"),
         "Ferie W1": st.column_config.NumberColumn("Ferie W1 (N. Set)"),
         "Ferie W2": st.column_config.NumberColumn("Ferie W2 (N. Set)"),
@@ -90,14 +149,14 @@ with tab_anagrafica:
     df_editato = st.data_editor(
         st.session_state.df_anagrafica,
         column_config=config_anagrafica,
-        num_rows="dynamic", # "dynamic" permette anche di aggiungere/eliminare righe direttamente dalla tabella!
+        num_rows="dynamic",
         use_container_width=True,
         hide_index=True
     )
 
     if st.button("💾 Salva Modifiche Anagrafica", type="primary", use_container_width=True):
         salva_dati_su_file(df_editato)
-        st.success("✅ Dati anagrafici e assenze aggiornati!")
+        st.success("✅ Dati anagrafici e assenze aggiornati correttamente!")
 
 # ==========================================
 # SCHEDA 2: GENERAZIONE TURNI E PRODUTTIVITÀ
@@ -151,11 +210,8 @@ with tab_turni:
         for dip in dati_dipendenti:
             if not dip.get("Nome") or str(dip.get("Nome")).strip() == "": continue 
             
-            # --- GESTIONE FERIE ---
             settimane_ferie = [dip.get("Ferie W1"), dip.get("Ferie W2"), dip.get("Ferie W3")]
             in_ferie = numero_settimana in settimane_ferie
-            
-            # --- GESTIONE MALATTIA ---
             data_fine_malattia = dip.get("Malattia Fino Al")
             
             turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
@@ -167,13 +223,11 @@ with tab_turni:
             for offset, giorno in enumerate(GIORNI):
                 data_giorno_corrente = data_lunedi + datetime.timedelta(days=offset)
                 
-                # Controllo Malattia per il giorno specifico
                 in_malattia = False
                 if pd.notnull(data_fine_malattia):
                     if data_giorno_corrente <= data_fine_malattia:
                         in_malattia = True
 
-                # Assegnazione prioritaria
                 if in_malattia:
                     riga[giorno] = "MALATTIA"
                 elif in_ferie:
@@ -184,13 +238,15 @@ with tab_turni:
                     else:
                         if dip["Contratto"] == "PT":
                             riposi_fissi = [dip.get("Riposo 1"), dip.get("Riposo 2")]
-                            if dom_turno == "RIPOSO" and giorno in riposi_fissi and giorno is not None:
-                                outro_riposo = riposi_fissi[1] if giorno == riposi_fissi[0] else riposi_fissi[0]
+                            riposi_fissi = [r for r in riposi_fissi if r != "Nessuno" and pd.notnull(r)]
+                            
+                            if dom_turno == "RIPOSO" and giorno in riposi_fissi:
+                                outro_riposo = riposi_fissi[1] if len(riposi_fissi) > 1 and giorno == riposi_fissi[0] else riposi_fissi[0]
                                 if target_copertura.get(giorno, 0) <= target_copertura.get(outro_riposo, 0):
                                     riga[giorno] = "RIPOSO"
                                 else:
                                     riga[giorno] = turno_base
-                            elif dom_turno != "RIPOSO" and giorno in riposi_fissi and giorno is not None:
+                            elif dom_turno != "RIPOSO" and giorno in riposi_fissi:
                                 riga[giorno] = "RIPOSO"
                             else:
                                 riga[giorno] = turno_base
@@ -209,7 +265,7 @@ with tab_turni:
                 max_surplus = -9999
                 
                 for giorno in GIORNI[:-1]:
-                    if df.at[index, giorno] not in ["MALATTIA", "FERIE"]: # Non togliere chi è già assente
+                    if df.at[index, giorno] not in ["MALATTIA", "FERIE"]: 
                         lavoratori_attivi = (~df[giorno].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
                         target_persone = totale_dipendenti * target_copertura[giorno]
                         surplus = lavoratori_attivi - target_persone
@@ -223,25 +279,19 @@ with tab_turni:
                     
         return df
 
-    # Ora mostriamo 6 schede per permettere di vedere anche il passato/futuro
     tabs_week = st.tabs([f"Week {week_partenza + i}" for i in range(6)])
     
-    memoria_dom = {}
-    for index, row in st.session_state.df_anagrafica.iterrows():
-        if row.get("Nome") and str(row.get("Nome")).strip() != "":
-            memoria_dom[row["Nome"]] = row["Dom Scorsa"]
+    # Inizializziamo tutti a False per la prima settimana visualizzata
+    memoria_dom = {row["Nome"]: False for index, row in st.session_state.df_anagrafica.iterrows() if row.get("Nome")}
 
     for i, t_week in enumerate(tabs_week):
         week_corrente = week_partenza + i
         lunedi_settimana = data_inizio + datetime.timedelta(weeks=i)
         
-        # Nome file per il salvataggio della settimana congelata
         FILE_BLOCCO = f"Turni_Bloccati_W{week_corrente}_{anno_partenza}.csv"
-
         config_colonne_turni = {}
         rinomina_esportazione = {}
         
-        # Le date reali per le colonne
         for offset, g_nome in enumerate(GIORNI):
             data_giorno = lunedi_settimana + datetime.timedelta(days=offset)
             label_dinamico = f"{APPROV_GIORNI[g_nome]} {data_giorno.day}"
@@ -252,10 +302,9 @@ with tab_turni:
             if st.session_state.df_anagrafica.empty:
                 st.warning("Inserisci prima i dipendenti nell'Anagrafica.")
             else:
-                # Carica dati salvati se esistono, altrimenti generalo nuovo
                 if os.path.exists(FILE_BLOCCO):
                     df_calcolato = pd.read_csv(FILE_BLOCCO)
-                    st.info("🔒 Questa settimana è stata salvata come **Definitiva**. Qualsiasi modifica farai qui sotto andrà sovrascritta cliccando il tasto Salva.")
+                    st.info("🔒 Questa settimana è stata salvata come **Definitiva**. Modificala qui sotto e premi Salva per aggiornare il file.")
                 else:
                     df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, memoria_dom)
                 
@@ -268,7 +317,6 @@ with tab_turni:
                 )
                 
                 col_save, col_down = st.columns(2)
-                
                 with col_save:
                     if st.button(f"🔒 Salva/Aggiorna Week {week_corrente} come Definitiva", type="primary", use_container_width=True, key=f"btn_save_w{week_corrente}"):
                         df_modificato.to_csv(FILE_BLOCCO, index=False)
@@ -279,7 +327,6 @@ with tab_turni:
                     df_esportazione = df_modificato.copy()
                     df_esportazione.rename(columns=rinomina_esportazione, inplace=True)
                     csv = df_esportazione.to_csv(index=False, sep=";").encode('utf-8-sig')
-                    
                     st.download_button(
                         label=f"📥 Scarica Excel/CSV (Week {week_corrente})",
                         data=csv,
@@ -309,8 +356,6 @@ with tab_turni:
                 st.write("**Stima Volumi Giornalieri (Escluse Assenze):**")
                 st.dataframe(pd.DataFrame(report).set_index("Giorno").T)
                 
-                # Prepariamo la memoria delle domeniche lavorate per la settimana successiva
-                # Ma SOLO SE la settimana è generata e non "forzata"
                 for i_row, row in df_modificato.iterrows():
                     nome_dip = row.get("Dipendente")
                     if nome_dip:
