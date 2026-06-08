@@ -137,7 +137,7 @@ with tab_turni:
             if ciclo == 1 or ciclo == 3: return "06:00-13:00"
             elif ciclo == 2: return "12:30-19:30"
             else: return "13:00-20:00"
-        else: # Squadre 3 e 4 (Inversione speculare)
+        else:
             if ciclo == 1: return "12:30-19:30"
             elif ciclo == 3: return "13:00-20:00"
             else: return "06:00-13:00"
@@ -165,6 +165,7 @@ with tab_turni:
     def genera_tabellone_settimana(numero_settimana, mem_domeniche):
         tabellone = []
         dati_dipendenti = st.session_state.df_anagrafica.to_dict('records')
+        totale_dipendenti = len([d for d in dati_dipendenti if d.get("Nome") and str(d.get("Nome")).strip() != ""])
         
         for dip in dati_dipendenti:
             if not dip.get("Nome") or str(dip.get("Nome")).strip() == "": continue 
@@ -198,13 +199,28 @@ with tab_turni:
             
         df = pd.DataFrame(tabellone)
         
-        giorni_ordinati = sorted(GIORNI[1:], key=lambda x: target_copertura[x])
+        # --- NUOVA LOGICA DINAMICA RIPOSI FT ---
         if not df.empty:
-            for index, row in df.iterrows():
-                if row["Contratto"] == "FT":
-                    for g_riposo in giorni_ordinati:
-                        df.at[index, g_riposo] = "RIPOSO"
-                        break
+            ft_indices = df[df["Contratto"] == "FT"].index.tolist()
+            
+            for index in ft_indices:
+                miglior_giorno = None
+                max_surplus = -9999
+                
+                # Cerca il giorno con più "sovrabbondanza" di personale rispetto al target
+                for giorno in GIORNI[1:]:
+                    lavoratori_attivi = (df[giorno] != "RIPOSO").sum()
+                    target_persone = totale_dipendenti * target_copertura[giorno]
+                    
+                    surplus = lavoratori_attivi - target_persone
+                    
+                    if surplus > max_surplus:
+                        max_surplus = surplus
+                        miglior_giorno = giorno
+                        
+                # Assegna il riposo nel giorno migliore e aggiorna la tabella per il prossimo FT
+                if miglior_giorno:
+                    df.at[index, miglior_giorno] = "RIPOSO"
                     
         return df
 
