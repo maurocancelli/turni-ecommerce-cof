@@ -205,6 +205,7 @@ with tab_turni:
         dati_dipendenti = st.session_state.df_anagrafica.to_dict('records')
         totale_dipendenti = len([d for d in dati_dipendenti if d.get("Nome") and str(d.get("Nome")).strip() != ""])
         
+        # --- STEP 1: ASSEGNAZIONE BASE DELLE DOMENICHE ---
         for dip in dati_dipendenti:
             if not dip.get("Nome") or str(dip.get("Nome")).strip() == "": 
                 continue 
@@ -212,21 +213,70 @@ with tab_turni:
             settimane_ferie = [dip.get("Ferie W1"), dip.get("Ferie W2"), dip.get("Ferie W3")]
             in_ferie = numero_settimana in settimane_ferie
             data_fine_malattia = dip.get("Malattia Fino Al")
-            turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
             
-            # --- LOGICA DELLE DOMENICHE E DELLE FERIE ---
-            ha_lavorato_dom_scorsa = mem_domeniche.get(dip["Nome"], False)
+            turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
+            turno_base_p = determina_turno_base(dip["Squadra"], numero_settimana - 1)
+            
+            stato_dom_scorsa = mem_domeniche.get(dip["Nome"])
+            
+            if stato_dom_scorsa is not None:
+                valore_dom_p = stato_dom_scorsa
+            else:
+                valore_dom_p = turno_base_p 
+
+            ha_lavorato_dom_scorsa = valore_dom_p not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"]
             
             if in_ferie:
-                valore_dom_p = turno_base 
-                valore_dom_s = "FERIE"
+                val_p = turno_base_p 
+                val_s = "FERIE"
             else:
-                valore_dom_p = "RIPOSO" if ha_lavorato_dom_scorsa else turno_base
-                valore_dom_s = turno_base if ha_lavorato_dom_scorsa else "RIPOSO"
+                val_p = valore_dom_p
+                val_s = "RIPOSO" if ha_lavorato_dom_scorsa else turno_base
 
-            riga = {"Dipendente": dip["Nome"], "Contratto": dip["Contratto"], "Squadra": dip["Squadra"]}
-                
-            for key, offset in zip(GIORNI_8_KEYS, OFFSETS):
+            data_dom_p = data_lunedi - datetime.timedelta(days=1)
+            data_dom_s = data_lunedi + datetime.timedelta(days=6)
+            
+            if pd.notnull(data_fine_malattia):
+                if data_dom_p <= data_fine_malattia: val_p = "MALATTIA"
+                if data_dom_s <= data_fine_malattia: val_s = "MALATTIA"
+
+            tabellone.append({
+                "Dipendente": dip["Nome"],
+                "Contratto": dip["Contratto"],
+                "Squadra": dip["Squadra"],
+                "Dom_P": val_p,
+                "Dom_S": val_s
+            })
+            
+        df = pd.DataFrame(tabellone)
+        
+        # --- STEP 2: FORZATURA MINIMO 9 PERSONE SULLE DOMENICHE ---
+        for col, num_sett in [("Dom_P", numero_settimana - 1), ("Dom_S", numero_settimana)]:
+            if not df.empty:
+                lavoratori_dom = (~df[col].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
+                if lavoratori_dom < 9:
+                    candidati = df[df[col] == "RIPOSO"].index.tolist()
+                    da_aggiungere = 9 - lavoratori_dom
+                    for idx in candidati:
+                        if da_aggiungere <= 0: break
+                        turno_forzato = determina_turno_base(df.at[idx, "Squadra"], num_sett)
+                        df.at[idx, col] = turno_forzato
+                        da_aggiungere -= 1
+
+        # --- STEP 3: GENERAZIONE LUNEDÌ - SABATO ---
+        for index, row in df.iterrows():
+            dip_name = row["Dipendente"]
+            dip = next(d for d in dati_dipendenti if d["Nome"] == dip_name)
+            
+            settimane_ferie = [dip.get("Ferie W1"), dip.get("Ferie W2"), dip.get("Ferie W3")]
+            in_ferie = numero_settimana in settimane_ferie
+            data_fine_malattia = dip.get("Malattia Fino Al")
+            turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
+            
+            # Leggiamo lo stato AGGIORNATO (dopo l'eventuale forzatura dei 9)
+            ha_lavorato_dom_p = df.at[index, "Dom_P"] not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"]
+            
+            for key, offset in zip(GIORNI_8_KEYS[1:7], OFFSETS[1:7]):
                 data_giorno_corrente = data_lunedi + datetime.timedelta(days=offset)
                 in_malattia = False
                 
@@ -234,13 +284,9 @@ with tab_turni:
                     in_malattia = True
 
                 if in_malattia:
-                    riga[key] = "MALATTIA"
-                elif in_ferie and key != "Dom_P":
-                    riga[key] = "FERIE"
-                elif key == "Dom_P":
-                    riga[key] = valore_dom_p
-                elif key == "Dom_S":
-                    riga[key] = valore_dom_s
+                    df.at[index, key] = "MALATTIA"
+                elif in_ferie:
+                    df.at[index, key] = "FERIE"
                 else:
                     if dip["Contratto"] == "PT":
                         riposi_fissi = [dip.get("Riposo 1"), dip.get("Riposo 2")]
@@ -248,46 +294,48 @@ with tab_turni:
                         
                         giorno_base = GIORNI_BASE[OFFSETS.index(offset) - 1] 
                         
-                        if valore_dom_p == "RIPOSO" and giorno_base in riposi_fissi:
+                        if not ha_lavorato_dom_p and giorno_base in riposi_fissi:
                             outro_riposo = riposi_fissi[1] if len(riposi_fissi) > 1 and giorno_base == riposi_fissi[0] else riposi_fissi[0]
                             chiave_altro = [k for k, g in zip(GIORNI_8_KEYS[1:7], GIORNI_BASE[:-1]) if g == outro_riposo]
                             chiave_corrente = key
                             if chiave_altro and target_copertura.get(chiave_corrente, 0) <= target_copertura.get(chiave_altro[0], 0):
-                                riga[key] = "RIPOSO"
+                                df.at[index, key] = "RIPOSO"
                             else:
-                                riga[key] = turno_base
-                        elif valore_dom_p != "RIPOSO" and giorno_base in riposi_fissi:
-                            riga[key] = "RIPOSO"
+                                df.at[index, key] = turno_base
+                        elif ha_lavorato_dom_p and giorno_base in riposi_fissi:
+                            df.at[index, key] = "RIPOSO"
                         else:
-                            riga[key] = turno_base
+                            df.at[index, key] = turno_base
                     else:
-                        riga[key] = turno_base 
+                        df.at[index, key] = turno_base 
             
-            tabellone.append(riga)
-            
-        df = pd.DataFrame(tabellone)
-        
-        # --- BILANCIAMENTO FT ---
+        # --- STEP 4: BILANCIAMENTO FULL-TIME ---
         if not df.empty:
             ft_indices = df[df["Contratto"] == "FT"].index.tolist()
             for index in ft_indices:
-                miglior_giorno = None
-                max_surplus = -9999
+                valore_dom_p = df.at[index, "Dom_P"]
+                ha_lavorato_dom_p = valore_dom_p not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"]
                 
-                for key in GIORNI_8_KEYS[1:7]:
-                    if df.at[index, key] not in ["MALATTIA", "FERIE"]: 
-                        lavoratori_attivi = (~df[key].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
-                        target_persone = totale_dipendenti * target_copertura[key]
-                        surplus = lavoratori_attivi - target_persone
-                        
-                        if surplus > max_surplus:
-                            max_surplus = surplus
-                            miglior_giorno = key
-                            
-                if miglior_giorno:
-                    df.at[index, miglior_giorno] = "RIPOSO"
+                # Il compensativo scatta SOLO se Dom_P risulta lavorata
+                if ha_lavorato_dom_p:
+                    miglior_giorno = None
+                    max_surplus = -9999
                     
-        return df
+                    for key in GIORNI_8_KEYS[1:7]:
+                        if df.at[index, key] not in ["MALATTIA", "FERIE", "RIPOSO"]: 
+                            lavoratori_attivi = (~df[key].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
+                            target_persone = totale_dipendenti * target_copertura[key]
+                            surplus = lavoratori_attivi - target_persone
+                            
+                            if surplus > max_surplus:
+                                max_surplus = surplus
+                                miglior_giorno = key
+                                
+                    if miglior_giorno:
+                        df.at[index, miglior_giorno] = "RIPOSO"
+        
+        colonne_ordinate = ["Dipendente", "Contratto", "Squadra"] + GIORNI_8_KEYS            
+        return df[colonne_ordinate]
 
     nomi_tabs = []
     for i in range(6):
@@ -296,7 +344,7 @@ with tab_turni:
         
     tabs_week = st.tabs(nomi_tabs)
     
-    mem_domeniche_dinamica = {row["Nome"]: False for index, row in st.session_state.df_anagrafica.iterrows() if row.get("Nome")}
+    mem_domeniche_dinamica = {row["Nome"]: None for index, row in st.session_state.df_anagrafica.iterrows() if row.get("Nome")}
 
     for i, t_week in enumerate(tabs_week):
         week_corrente = week_partenza + i
@@ -319,7 +367,6 @@ with tab_turni:
                 if os.path.exists(FILE_BLOCCO):
                     df_calcolato = pd.read_csv(FILE_BLOCCO)
                     
-                    # --- CONTROLLO ANTI-CRASH STRUTTURA VECCHIA ---
                     if "Dom_P" not in df_calcolato.columns:
                         st.warning(f"⚠️ Rilevata struttura obsoleta salvata per la Week {week_corrente}. La settimana è stata rigenerata con il nuovo layout.")
                         df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
@@ -336,10 +383,11 @@ with tab_turni:
                     key=f"editor_w{week_corrente}"
                 )
                 
+                # --- AGGIORNO LA MEMORIA PER LA SETTIMANA SUCCESSIVA ---
                 for i_row, row in df_modificato.iterrows():
                     nome_dip = row.get("Dipendente")
                     if nome_dip:
-                        mem_domeniche_dinamica[nome_dip] = (row.get("Dom_S") not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"])
+                        mem_domeniche_dinamica[nome_dip] = row.get("Dom_S")
                 
                 col_save, col_down = st.columns(2)
                 
