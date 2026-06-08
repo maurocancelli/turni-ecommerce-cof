@@ -137,20 +137,22 @@ with tab_anagrafica:
 # ==========================================
 with tab_turni:
     def determina_turno_base(squadra, numero_settimana):
+        """Calcola l'andamento perpetuo ancorato rigidamente sui parametri della Week 24"""
         ciclo = numero_settimana % 4
-        if ciclo == 1:
-            if squadra in [1, 2]: return "06:00-13:00"
-            elif squadra == 3: return "12:30-19:30"
-            elif squadra == 4: return "13:00-20:00"
-        elif ciclo == 2:
-            if squadra == 1: return "12:30-19:30"
-            elif squadra == 2: return "13:00-20:00"
-            elif squadra in [3, 4]: return "06:00-13:00"
-        elif ciclo == 3:
+        
+        if ciclo == 0: # Esempio: Week 24, 28, 32...
             if squadra in [1, 2]: return "06:00-13:00"
             elif squadra == 3: return "13:00-20:00"
             elif squadra == 4: return "12:30-19:30"
-        else:
+        elif ciclo == 1: # Esempio: Week 25, 29, 33...
+            if squadra == 1: return "12:30-19:30"
+            elif squadra == 2: return "13:00-20:00"
+            elif squadra in [3, 4]: return "06:00-13:00"
+        elif ciclo == 2: # Esempio: Week 26, 30, 34...
+            if squadra in [1, 2]: return "06:00-13:00"
+            elif squadra == 3: return "12:30-19:30"
+            elif squadra == 4: return "13:00-20:00"
+        else: # ciclo == 3. Esempio: Week 27, 31, 35...
             if squadra == 1: return "13:00-20:00"
             elif squadra == 2: return "12:30-19:30"
             elif squadra in [3, 4]: return "06:00-13:00"
@@ -171,7 +173,7 @@ with tab_turni:
 
     st.sidebar.subheader("Forza Lavoro Richiesta (%)")
     target_copertura = {}
-    default_pct = [90, 75, 75, 75, 90, 90, 45] # Mappati su Lun->Dom
+    default_pct = [90, 75, 75, 75, 90, 90, 45]
     for g, default in zip(GIORNI, default_pct):
         target_copertura[g] = st.sidebar.slider(g, 0, 100, default) / 100
 
@@ -186,11 +188,9 @@ with tab_turni:
             turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
             riga = {"Dipendente": dip["Nome"], "Contratto": dip["Contratto"], "Squadra": dip["Squadra"]}
             
-            # Pre-calcolo Domenica per vincolare i Part-Time
             ha_lavorato_scorsa = bool(mem_domeniche.get(dip["Nome"], False))
             dom_turno = "RIPOSO" if ha_lavorato_scorsa else "06:00-13:00"
                 
-            # Giorni feriali
             for giorno in GIORNI[:-1]:
                 if dip["Contratto"] == "PT":
                     riposi_fissi = [dip.get("Riposo 1"), dip.get("Riposo 2")]
@@ -243,7 +243,6 @@ with tab_turni:
         week_corrente = week_partenza + i
         lunedi_settimana = data_inizio + datetime.timedelta(weeks=i)
         
-        # Generiamo le intestazioni dinamiche con i numeri esatti di calendario
         config_colonne_turni = {}
         rinomina_esportazione = {}
         for offset, g_nome in enumerate(GIORNI):
@@ -268,7 +267,6 @@ with tab_turni:
                     key=f"editor_w{week_corrente}"
                 )
                 
-                # Esportazione con date reali inserite nell'intestazione Excel
                 df_esportazione = df_modificato.copy()
                 df_esportazione.rename(columns=rinomina_esportazione, inplace=True)
                 csv = df_esportazione.to_csv(index=False, sep=";").encode('utf-8-sig')
@@ -285,7 +283,6 @@ with tab_turni:
                 st.write("**Vista Visiva Assenze e Copertura:**")
                 st.dataframe(df_modificato.style.map(colora_celle), use_container_width=True)
                 
-                # Report Volumi con date di calendario
                 report = []
                 for g_nome in GIORNI:
                     is_mattina = df_modificato[g_nome] == "06:00-13:00"
