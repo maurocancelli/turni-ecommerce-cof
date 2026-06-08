@@ -250,8 +250,9 @@ with tab_turni:
             
         df = pd.DataFrame(tabellone)
         
-        # --- STEP 2: FORZATURA MINIMO 9 PERSONE SULLE DOMENICHE ---
-        for col, num_sett in [("Dom_P", numero_settimana - 1), ("Dom_S", numero_settimana)]:
+        # --- STEP 2: FORZATURA MINIMO 9 PERSONE (SOLO SULLA DOMENICA FUTURA) ---
+        # Applico la forzatura ESCLUSIVAMENTE sulla Dom_S, perché Dom_P è intoccabile (passato)
+        for col, num_sett in [("Dom_S", numero_settimana)]:
             if not df.empty:
                 lavoratori_dom = (~df[col].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
                 if lavoratori_dom < 9:
@@ -273,7 +274,6 @@ with tab_turni:
             data_fine_malattia = dip.get("Malattia Fino Al")
             turno_base = determina_turno_base(dip["Squadra"], numero_settimana)
             
-            # Leggiamo lo stato AGGIORNATO (dopo l'eventuale forzatura dei 9)
             ha_lavorato_dom_p = df.at[index, "Dom_P"] not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"]
             
             for key, offset in zip(GIORNI_8_KEYS[1:7], OFFSETS[1:7]):
@@ -357,7 +357,15 @@ with tab_turni:
         for key, offset in zip(GIORNI_8_KEYS, OFFSETS):
             data_giorno = lunedi_settimana + datetime.timedelta(days=offset)
             label_dinamico = f"{APPROV_GIORNI[key]} {data_giorno.day}"
-            config_colonne_turni[key] = st.column_config.SelectboxColumn(label_dinamico, options=OPZIONI_TURNO)
+            
+            # --- BLOCCO VISIVO DOM_P ---
+            # Rende impossibile editare la Dom_P dalla seconda settimana in poi, costringendo l'utente 
+            # a modificare la Dom_S della settimana prima (dove ha origine l'evento)
+            is_disabled = (key == "Dom_P" and i > 0)
+            
+            config_colonne_turni[key] = st.column_config.SelectboxColumn(
+                label_dinamico, options=OPZIONI_TURNO, disabled=is_disabled
+            )
             rinomina_esportazione[key] = label_dinamico
 
         with t_week:
@@ -372,6 +380,16 @@ with tab_turni:
                         df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
                     else:
                         st.info("🔒 Settimana Definitiva. Modifica e clicca Salva per aggiornare il blocco.")
+                        
+                        # --- SINCRONIZZAZIONE FORZATA ---
+                        # Anche se il file è bloccato, la sua Dom_P DEVE sempre essere la copia esatta 
+                        # della Dom_S della settimana precedente. Questo previene disallineamenti.
+                        if i > 0:
+                            for idx, row_calc in df_calcolato.iterrows():
+                                dip_name = row_calc.get("Dipendente")
+                                val_prev = mem_domeniche_dinamica.get(dip_name)
+                                if val_prev is not None:
+                                    df_calcolato.at[idx, "Dom_P"] = val_prev
                 else:
                     df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
                 
