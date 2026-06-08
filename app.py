@@ -79,6 +79,10 @@ OFFSETS = [-1, 0, 1, 2, 3, 4, 5, 6]
 OPZIONI_TURNO = ["06:00-13:00", "12:30-19:30", "13:00-20:00", "RIPOSO", "MALATTIA", "FERIE", "PERMESSO"]
 APPROV_GIORNI = {"Dom_P": "Dom", "Lun": "Lun", "Mar": "Mar", "Mer": "Mer", "Gio": "Gio", "Ven": "Ven", "Sab": "Sab", "Dom_S": "Dom"}
 
+# Stato per quante settimane mostrare dinamicamente
+if 'num_weeks_to_show' not in st.session_state:
+    st.session_state.num_weeks_to_show = 6
+
 # --- CREAZIONE SCHEDE PRINCIPALI ---
 tab_anagrafica, tab_turni = st.tabs(["📋 1. Gestione Anagrafica", "📅 2. Generazione Turni"])
 
@@ -188,12 +192,22 @@ with tab_turni:
         elif "12:30" in str(valore) or "13:00" in str(valore): return "background-color: #fbefff; color: #8250df;"
         return ""
 
-    st.sidebar.header("Parametri Operativi")
-    data_inizio = st.sidebar.date_input("Lunedì di inizio visualizzazione", datetime.date.today() - datetime.timedelta(days=datetime.date.today().weekday()))
+    # Calcolo automatico della data di partenza (Il lunedì della settimana corrente)
+    oggi = datetime.date.today()
+    data_inizio = oggi - datetime.timedelta(days=oggi.weekday())
     week_partenza = data_inizio.isocalendar()[1]
     anno_partenza = data_inizio.isocalendar()[0]
-    pieces_ora = st.sidebar.number_input("Pezzi/Ora (Default):", value=100)
 
+    st.sidebar.header("Parametri Operativi")
+    pieces_ora = st.sidebar.number_input("Pezzi/Ora (Default):", value=100)
+    
+    st.sidebar.divider()
+    if st.sidebar.button("➕ Aggiungi Settimana Successiva", type="primary", use_container_width=True):
+        st.session_state.num_weeks_to_show += 1
+        st.rerun()
+    st.sidebar.caption("Genera una nuova scheda per vedere oltre il limite attuale.")
+
+    st.sidebar.divider()
     st.sidebar.subheader("Forza Lavoro Richiesta (%)")
     target_copertura = {}
     default_pct = [45, 90, 75, 75, 75, 90, 90, 45] 
@@ -214,20 +228,21 @@ with tab_turni:
             in_ferie = numero_settimana in settimane_ferie
             data_fine_malattia = dip.get("Malattia Fino Al")
             
-            turno_base_p = determina_turno_base(dip["Squadra"], numero_settimana - 1)
             stato_dom_scorsa = mem_domeniche.get(dip["Nome"])
             
-            # Identità assoluta del passato
+            # Recupero esatto passato, forzando la mattina se per sbaglio c'erano vecchi turni pomeridiani
             if stato_dom_scorsa is not None:
                 val_p = stato_dom_scorsa
+                if val_p in ["12:30-19:30", "13:00-20:00"]:
+                    val_p = "06:00-13:00"
             else:
-                val_p = turno_base_p 
+                val_p = "06:00-13:00" 
 
             data_dom_p = data_lunedi - datetime.timedelta(days=1)
             if pd.notnull(data_fine_malattia) and data_dom_p <= data_fine_malattia: 
                 val_p = "MALATTIA"
             if in_ferie: 
-                val_p = turno_base_p # Regola ferie: domenica prima si lavora sempre
+                val_p = "06:00-13:00" # Regola ferie: domenica prima si lavora (solo mattina)
 
             tabellone.append({
                 "Dipendente": dip["Nome"],
@@ -239,7 +254,7 @@ with tab_turni:
             
         df = pd.DataFrame(tabellone)
         
-        # --- STEP 2: CALIBRAZIONE DI FERIE, MALATTIE E TARGET ESATTO DI 9 PERSONE SU DOM_S ---
+        # --- STEP 2: CALIBRAZIONE DI FERIE, MALATTIE E TARGET ESATTO DI 10 PERSONE SU DOM_S ---
         for index, row in df.iterrows():
             dip = next(d for d in dati_dipendenti if d["Nome"] == row["Dipendente"])
             settimane_ferie = [dip.get("Ferie W1"), dip.get("Ferie W2"), dip.get("Ferie W3")]
@@ -252,9 +267,8 @@ with tab_turni:
             elif in_ferie:
                 df.at[index, "Dom_S"] = "FERIE"
         
-        # Calcolo quanti stanno già lavorando (es. forzati da altre logiche esterne, inizialmente 0)
         lavoratori_attuali = (~df["Dom_S"].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
-        da_attivare = 9 - lavoratori_attuali
+        da_attivare = 10 - lavoratori_attuali # Adesso ne cerca 10 e non 9
         
         if da_attivare > 0:
             # Preferenza 1: Chi è a RIPOSO su Dom_S e NON ha lavorato la domenica prima (Alternanza standard)
@@ -263,15 +277,15 @@ with tab_turni:
                 if df.at[idx, "Dom_S"] == "RIPOSO":
                     ha_lavorato_dom_p = df.at[idx, "Dom_P"] not in ["RIPOSO", "FERIE", "MALATTIA", "PERMESSO"]
                     if not ha_lavorato_dom_p:
-                        df.at[idx, "Dom_S"] = determina_turno_base(df.at[idx, "Squadra"], numero_settimana)
+                        df.at[idx, "Dom_S"] = "06:00-13:00" # Solo ed esclusivamente mattina
                         da_attivare -= 1
                         
         if da_attivare > 0:
-            # Preferenza 2: Se mancano persone per coprire i 9, forzo chi ha già lavorato la domenica prima (Consecutivi)
+            # Preferenza 2: Forzatura (consecutivi) se manca personale
             for idx, riga_df in df.iterrows():
                 if da_attivare <= 0: break
                 if df.at[idx, "Dom_S"] == "RIPOSO":
-                    df.at[idx, "Dom_S"] = determina_turno_base(df.at[idx, "Squadra"], numero_settimana)
+                    df.at[idx, "Dom_S"] = "06:00-13:00"
                     da_attivare -= 1
 
         # --- STEP 3: GENERAZIONE LUNEDÌ - SABATO ---
@@ -335,8 +349,9 @@ with tab_turni:
         colonne_ordinate = ["Dipendente", "Contratto", "Squadra"] + GIORNI_8_KEYS            
         return df[colonne_ordinate]
 
+    # Generazione dinamica dei nomi dei Tab
     nomi_tabs = []
-    for i in range(6):
+    for i in range(st.session_state.num_weeks_to_show):
         settimana_calc = week_partenza + i
         nomi_tabs.append(f"Week {settimana_calc}")
         
@@ -354,7 +369,6 @@ with tab_turni:
             data_giorno = lunedi_settimana + datetime.timedelta(days=offset)
             label_dinamico = f"{APPROV_GIORNI[key]} {data_giorno.day}"
             
-            # Lucchetto visivo sulla Dom_P per bloccare i disallineamenti tra schede
             is_disabled = (key == "Dom_P" and i > 0)
             config_colonne_turni[key] = st.column_config.SelectboxColumn(
                 label_dinamico, options=OPZIONI_TURNO, disabled=is_disabled
@@ -374,7 +388,7 @@ with tab_turni:
                     else:
                         st.info("🔒 Settimana Definitiva. Modifica e clicca Salva per aggiornare il blocco.")
                         
-                        # ALLINEAMENTO CASSAFORTE: sovrascrivo Dom_P del file con il reale valore calcolato o caricato prima
+                        # ALLINEAMENTO
                         if i > 0:
                             for idx, row_calc in df_calcolato.iterrows():
                                 dip_name = row_calc.get("Dipendente")
@@ -382,14 +396,14 @@ with tab_turni:
                                 if val_prev is not None:
                                     df_calcolato.at[idx, "Dom_P"] = val_prev
                         
-                        # SCUDO ANTI-CORRUZIONE: Se un vecchio salvataggio aveva 0 lavoratori su Dom_S, correggo a 9 all'istante
+                        # SCUDO ANTI-CORRUZIONE VECCHI FILE
                         lavoratori_s = (~df_calcolato["Dom_S"].isin(["RIPOSO", "MALATTIA", "FERIE", "PERMESSO"])).sum()
                         if lavoratori_s == 0:
-                            da_aggiungere = 9
+                            da_aggiungere = 10
                             for idx, row_calc in df_calcolato.iterrows():
                                 if da_aggiungere <= 0: break
                                 if row_calc["Dom_S"] == "RIPOSO":
-                                    df_calcolato.at[idx, "Dom_S"] = determina_turno_base(row_calc["Squadra"], week_corrente)
+                                    df_calcolato.at[idx, "Dom_S"] = "06:00-13:00"
                                     da_aggiungere -= 1
                 else:
                     df_calcolato = genera_tabellone_settimana(week_corrente, lunedi_settimana, mem_domeniche_dinamica)
@@ -402,7 +416,7 @@ with tab_turni:
                     key=f"editor_w{week_corrente}"
                 )
                 
-                # PROPAGAZIONE DELLA DOM_S VERSO LA SCHEDA SUCCESSIVA
+                # PROPAGAZIONE MEMORIA
                 for i_row, row in df_modificato.iterrows():
                     nome_dip = row.get("Dipendente")
                     if nome_dip:
