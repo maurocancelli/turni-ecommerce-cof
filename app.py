@@ -255,6 +255,17 @@ with tab_turni:
                     key=f"editor_w{week_corrente}"
                 )
                 
+                # --- BOTTONE DI ESPORTAZIONE IN CSV/EXCEL ---
+                csv = df_modificato.to_csv(index=False, sep=";").encode('utf-8-sig')
+                st.download_button(
+                    label=f"📥 Scarica Turni Week {week_corrente} in Excel/CSV",
+                    data=csv,
+                    file_name=f"Turni_Week_{week_corrente}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+                st.write("") # Spazio extra per pulizia grafica
+
                 st.write("**Vista Visiva Assenze e Copertura:**")
                 st.dataframe(df_modificato.style.map(colora_celle), use_container_width=True)
                 
