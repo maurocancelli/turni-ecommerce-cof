@@ -39,7 +39,7 @@ if 'df_anagrafica' not in st.session_state:
             {"Nome": "TANADA EUGENE", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
             {"Nome": "CIPRIANO RUSSEL", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
             {"Nome": "FELIX CARBUNGCAL", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
-            {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa False"},
+            {"Nome": "GHITTI SARA", "Contratto": "FT", "Squadra": 1, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
             {"Nome": "BONO DANIELA", "Contratto": "FT", "Squadra": 2, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
             {"Nome": "TAN JONIMAE", "Contratto": "FT", "Squadra": 3, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
             {"Nome": "PETILUNA ROSARIO", "Contratto": "FT", "Squadra": 4, "Riposo 1": None, "Riposo 2": None, "Dom Scorsa": False},
